@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Коллекция - Knowledge Dash</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">KD</span><span>Knowledge Dash</span></a>
+    <nav class="nav">
+      <a href="game.html">Играть</a>
+      <a href="levels.html">Уровни</a>
+      <a class="active" href="collection.html">Коллекция</a>
+      <a href="controls.html">Управление</a>
+    </nav>
+  </header>
+  <main class="page">
+    <p class="eyebrow">Saved locally</p>
+    <h1>Коллекция знаний и монеты сохраняются в браузере.</h1>
+    <section class="collection-panel">
+      <div><small>Total Coins</small><b id="collectionCoins">0</b></div>
+      <div><small>Artifacts Found</small><b id="collectionArtifacts">0</b></div>
+      <div><small>Best Progress</small><b id="collectionBest">0%</b></div>
+    </section>
+    <div id="artifactList" class="artifact-list"></div>
+  </main>
+  <script>
+    const data = JSON.parse(localStorage.getItem('knowledgeDashSave') || '{}');
+    document.getElementById('collectionCoins').textContent = data.totalCoins || 0;
+    const artifacts = data.artifacts || [];
+    document.getElementById('collectionArtifacts').textContent = artifacts.length;
+    const best = data.best || {};
+    document.getElementById('collectionBest').textContent = Math.max(0, ...Object.values(best)).toFixed(0) + '%';
+    document.getElementById('artifactList').innerHTML = artifacts.length
+      ? artifacts.map(a => `<article><b>${a}</b><span>Открыто во время забега.</span></article>`).join('')
+      : '<article><b>Пока пусто</b><span>Собери артефакты знаний в игре.</span></article>';
+  </script>
+</body>
+</html>
