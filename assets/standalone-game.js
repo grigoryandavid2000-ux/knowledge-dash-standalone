@@ -31,18 +31,38 @@
   }
 
   function improveMobileTap() {
-    let lastTap = 0;
-    document.addEventListener(
-      "touchstart",
+    let lastJump = 0;
+    const interactiveSelector = "button,a,input,textarea,select,[role='dialog'],.kd-profile-pill,.kd-profile-modal";
+    const fireJump = (event) => {
+      const target = event.target;
+      if (target && target.closest && target.closest(interactiveSelector)) return;
+      if (!location.pathname.includes("/play/")) return;
+      const now = performance.now();
+      if (now - lastJump < 42) {
+        event.preventDefault();
+        return;
+      }
+      lastJump = now;
+      event.preventDefault();
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: " ",
+          code: "Space",
+          keyCode: 32,
+          which: 32,
+          bubbles: true,
+          cancelable: true
+        })
+      );
+    };
+    window.addEventListener("pointerdown", fireJump, { passive: false, capture: true });
+    window.addEventListener("touchstart", fireJump, { passive: false, capture: true });
+    window.addEventListener(
+      "contextmenu",
       (event) => {
-        const target = event.target;
-        if (target && target.closest && target.closest("button,a,input,textarea,select,[role='dialog']")) return;
-        const now = Date.now();
-        if (now - lastTap < 300) event.preventDefault();
-        lastTap = now;
-        window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true }));
+        if (location.pathname.includes("/play/")) event.preventDefault();
       },
-      { passive: false }
+      { capture: true }
     );
   }
 
@@ -75,6 +95,56 @@
 
     const style = document.createElement("style");
     style.textContent = `
+      @media (max-width: 640px) {
+        html, body {
+          overscroll-behavior: none;
+        }
+        body {
+          touch-action: manipulation;
+        }
+        .container {
+          padding-left: 0.75rem !important;
+          padding-right: 0.75rem !important;
+        }
+        .container.py-10 {
+          padding-top: 0.75rem !important;
+          padding-bottom: 4.25rem !important;
+        }
+        .max-w-\\[960px\\] {
+          max-width: 100vw !important;
+        }
+        canvas {
+          width: min(100vw - 18px, 960px) !important;
+          max-width: none !important;
+          border-radius: 12px;
+        }
+        canvas + .pointer-events-none {
+          left: 8px !important;
+          top: 8px !important;
+          width: min(300px, calc(100vw - 34px)) !important;
+          max-width: calc(100vw - 34px) !important;
+          padding: 9px 10px !important;
+          border-radius: 12px !important;
+          text-align: left !important;
+        }
+        canvas + .pointer-events-none div:first-child {
+          font-size: 13px !important;
+          line-height: 1.2 !important;
+        }
+        canvas + .pointer-events-none div:last-child {
+          margin-top: 3px !important;
+          font-size: 11px !important;
+          line-height: 1.25 !important;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        canvas + .pointer-events-none + .absolute,
+        canvas + .pointer-events-none + .absolute + .absolute {
+          padding: 12px !important;
+        }
+      }
       .kd-profile-pill {
         position: fixed;
         right: 16px;
@@ -164,11 +234,24 @@
       }
       @media (max-width: 640px) {
         .kd-profile-pill {
-          left: 12px;
-          right: 12px;
-          bottom: 12px;
+          left: auto;
+          right: 10px;
+          bottom: 10px;
+          width: auto;
+          max-width: 210px;
           justify-content: space-between;
-          padding: 10px 12px;
+          padding: 7px 8px 7px 10px;
+          gap: 8px;
+          font-size: 11px;
+        }
+        .kd-profile-pill button {
+          padding: 6px 8px;
+        }
+        .kd-profile-pill span {
+          max-width: 92px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       }
     `;
