@@ -32,18 +32,10 @@
 
   function improveMobileTap() {
     let lastJump = 0;
+    let held = false;
+    let holdFrame = 0;
     const interactiveSelector = "button,a,input,textarea,select,[role='dialog'],.kd-profile-pill,.kd-profile-modal";
-    const fireJump = (event) => {
-      const target = event.target;
-      if (target && target.closest && target.closest(interactiveSelector)) return;
-      if (!location.pathname.includes("/play/")) return;
-      const now = performance.now();
-      if (now - lastJump < 42) {
-        event.preventDefault();
-        return;
-      }
-      lastJump = now;
-      event.preventDefault();
+    const sendJump = () => {
       window.dispatchEvent(
         new KeyboardEvent("keydown", {
           key: " ",
@@ -55,8 +47,43 @@
         })
       );
     };
-    window.addEventListener("pointerdown", fireJump, { passive: false, capture: true });
-    window.addEventListener("touchstart", fireJump, { passive: false, capture: true });
+    const holdLoop = () => {
+      if (!held) {
+        holdFrame = 0;
+        return;
+      }
+      sendJump();
+      holdFrame = requestAnimationFrame(holdLoop);
+    };
+    const startJump = (event) => {
+      const target = event.target;
+      if (target && target.closest && target.closest(interactiveSelector)) return;
+      if (!location.pathname.includes("/play/")) return;
+      const now = performance.now();
+      if (now - lastJump < 24) {
+        event.preventDefault();
+        return;
+      }
+      lastJump = now;
+      event.preventDefault();
+      sendJump();
+      if (!held) {
+        held = true;
+        holdFrame = requestAnimationFrame(holdLoop);
+      }
+    };
+    const stopJump = () => {
+      held = false;
+      if (holdFrame) cancelAnimationFrame(holdFrame);
+      holdFrame = 0;
+    };
+    window.addEventListener("pointerdown", startJump, { passive: false, capture: true });
+    window.addEventListener("touchstart", startJump, { passive: false, capture: true });
+    window.addEventListener("pointerup", stopJump, { passive: true, capture: true });
+    window.addEventListener("pointercancel", stopJump, { passive: true, capture: true });
+    window.addEventListener("touchend", stopJump, { passive: true, capture: true });
+    window.addEventListener("touchcancel", stopJump, { passive: true, capture: true });
+    window.addEventListener("blur", stopJump);
     window.addEventListener(
       "contextmenu",
       (event) => {
@@ -76,6 +103,26 @@
       event.preventDefault();
       go(href);
     });
+  }
+
+  function syncRouteClasses() {
+    const apply = () => {
+      document.body.classList.toggle("kd-play-route", location.pathname.includes("/play/"));
+    };
+    apply();
+    window.addEventListener("popstate", apply);
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    history.pushState = function (...args) {
+      const result = originalPushState.apply(this, args);
+      queueMicrotask(apply);
+      return result;
+    };
+    history.replaceState = function (...args) {
+      const result = originalReplaceState.apply(this, args);
+      queueMicrotask(apply);
+      return result;
+    };
   }
 
   function installProfileWidget() {
@@ -117,6 +164,58 @@
           width: min(100vw - 18px, 960px) !important;
           max-width: none !important;
           border-radius: 12px;
+        }
+        .kd-play-route {
+          overflow: hidden;
+        }
+        .kd-play-route main,
+        .kd-play-route .container {
+          max-width: 100vw !important;
+        }
+        .kd-play-route .container.py-6 {
+          padding: 0.35rem 0.55rem 3.1rem !important;
+        }
+        .kd-play-route nav,
+        .kd-play-route header,
+        .kd-play-route footer {
+          display: none !important;
+        }
+        .kd-play-route .flex.flex-col.items-center.gap-4 {
+          gap: 0.45rem !important;
+        }
+        .kd-play-route .flex.w-full.max-w-\\[960px\\].flex-wrap {
+          align-items: center !important;
+          gap: 0.35rem !important;
+          justify-content: space-between !important;
+        }
+        .kd-play-route .flex.w-full.max-w-\\[960px\\].flex-wrap > button {
+          padding: 0.42rem 0.62rem !important;
+          font-size: 11px !important;
+          line-height: 1 !important;
+        }
+        .kd-play-route .flex.flex-wrap.items-center.gap-2.text-xs {
+          gap: 0.25rem !important;
+          max-width: calc(100vw - 92px);
+          justify-content: flex-end;
+        }
+        .kd-play-route .flex.flex-wrap.items-center.gap-2.text-xs span {
+          padding: 0.28rem 0.38rem !important;
+          font-size: 10px !important;
+          line-height: 1 !important;
+        }
+        .kd-play-route .flex.flex-wrap.items-center.gap-2.text-xs span span:first-child {
+          display: none !important;
+        }
+        .kd-play-route .mb-1.flex.justify-between {
+          font-size: 9px !important;
+          letter-spacing: 0.08em !important;
+          padding: 0 0.1rem;
+        }
+        .kd-play-route canvas {
+          width: calc(100vw - 10px) !important;
+        }
+        .kd-play-route canvas + .pointer-events-none {
+          opacity: 0.9;
         }
         canvas + .pointer-events-none {
           left: 8px !important;
@@ -312,6 +411,7 @@
   document.title = "Knowledge Dash - автономная версия";
   normalizeStaticRoute();
   addStaticNavFallback();
+  syncRouteClasses();
   improveMobileTap();
   installProfileWidget();
 })();
